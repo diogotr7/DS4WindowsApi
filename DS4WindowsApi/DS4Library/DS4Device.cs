@@ -8,7 +8,6 @@ using System.Diagnostics;
 
 using System.Linq;
 using System.Drawing;
-using DS4Windows.DS4Library;
 
 namespace DS4Windows
 {
@@ -143,8 +142,6 @@ namespace DS4Windows
         private byte ledFlashOn, ledFlashOff;
         private Thread ds4Input, ds4Output;
         private int battery;
-        private DS4Audio audio = null;
-        private DS4Audio micAudio = null;
         public DateTime lastActive = DateTime.UtcNow;
         public DateTime firstActive = DateTime.UtcNow;
         private bool charging;
@@ -420,19 +417,12 @@ namespace DS4Windows
                 {
                     warnInterval = WARN_INTERVAL_USB;
                     HidDeviceAttributes tempAttr = hDevice.Attributes;
-                    if (tempAttr.VendorId == 0x054C && tempAttr.ProductId == 0x09CC)
-                    {
-                        audio = new DS4Audio();
-                        micAudio = new DS4Audio(DS4Library.CoreAudio.DataFlow.Capture);
-                    }
 
                     synced = true;
                 }
                 else
                 {
                     warnInterval = WARN_INTERVAL_BT;
-                    audio = new DS4Audio();
-                    micAudio = new DS4Audio(DS4Library.CoreAudio.DataFlow.Capture);
                     synced = isValidSerial();
                 }
             }
@@ -738,10 +728,12 @@ namespace DS4Windows
                         sendOutputReport(true); // Kick Windows into noticing the disconnection.
                         StopOutputUpdate();
                         isDisconnecting = true;
+                        /*
                         uiContext.Send(new SendOrPostCallback(delegate (object state4)
                         {
                             Removal?.Invoke(this, EventArgs.Empty);
                         }), null);
+                        */
 
                         //System.Threading.Tasks.Task.Factory.StartNew(() => { Removal?.Invoke(this, EventArgs.Empty); });
                         //Removal?.Invoke(this, EventArgs.Empty);
@@ -771,10 +763,12 @@ namespace DS4Windows
 
                         StopOutputUpdate();
                         isDisconnecting = true;
+                        /*
                         uiContext.Send(new SendOrPostCallback(delegate (object state4)
                         {
                             Removal?.Invoke(this, EventArgs.Empty);
                         }), null);
+                        */
 
                         //System.Threading.Tasks.Task.Factory.StartNew(() => { Removal?.Invoke(this, EventArgs.Empty); });
                         //Removal?.Invoke(this, EventArgs.Empty);
@@ -1068,14 +1062,6 @@ namespace DS4Windows
                     outputReportBuffer[8] = ligtBarColor.blue; // blue
                     outputReportBuffer[9] = ledFlashOn; // flash on duration
                     outputReportBuffer[10] = ledFlashOff; // flash off duration
-                    if (audio != null)
-                    {
-                        // Headphone volume levels
-                        outputReportBuffer[19] = outputReportBuffer[20] =
-                            Convert.ToByte(audio.getVolume());
-                        // Microphone volume level
-                        outputReportBuffer[21] = Convert.ToByte(micAudio.getVolume());
-                    }
                 }
 
                 if (synchronous)
@@ -1204,12 +1190,12 @@ namespace DS4Windows
             {
                 isDisconnecting = true;
                 StopOutputUpdate();
-
+                
                 uiContext.Send(new SendOrPostCallback(delegate (object state4)
                 {
                     Removal?.Invoke(this, EventArgs.Empty);
                 }), null);
-
+                
                 //System.Threading.Tasks.Task.Factory.StartNew(() => { Removal?.Invoke(this, EventArgs.Empty); });
                 //Removal?.Invoke(this, EventArgs.Empty);
             }
